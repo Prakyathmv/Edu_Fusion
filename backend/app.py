@@ -1,29 +1,18 @@
-from flask import Flask, request, jsonify
-import google.generativeai as genai
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
+from flask import Flask
+from flask_bcrypt import Bcrypt
+from flask_jwt_extended import JWTManager
+from config import Config
+from routes import routes
+from db import init_db, mongo  
 
 app = Flask(__name__)
+app.config.from_object(Config)
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+init_db(app) 
+bcrypt = Bcrypt(app)
+jwt = JWTManager(app)
 
-@app.route('/chat', methods=['POST'])
-def chat():
-    data = request.json
-    user_input = data.get("message")
+app.register_blueprint(routes)
 
-    if not user_input:
-        return jsonify({"error": "No message provided"}), 400
-
-    try:
-        model = genai.GenerativeModel("gemini-pro") 
-        response = model.generate_content(user_input)
-        return jsonify({"response": response.text})
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
